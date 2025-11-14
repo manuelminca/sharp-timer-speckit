@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AppKit
 
 /// Timer service responsible for managing Foundation.Timer and countdown logic
 protocol TimerServiceDelegate: AnyObject {
@@ -18,7 +19,8 @@ protocol TimerServiceDelegate: AnyObject {
 class TimerService {
     // MARK: - Properties
     weak var delegate: TimerServiceDelegate?
-    private var foundationTimer: Timer?
+    private var foundationTimer: Foundation.Timer?
+    private var currentTimer: Timer? // Track the current custom Timer model
     private var updateInterval: TimeInterval = 1.0 // Update every second
     
     // Timer accuracy tracking
@@ -42,6 +44,7 @@ class TimerService {
         
         var timer = Timer(name: name, duration: duration, preset: preset)
         timer.start()
+        currentTimer = timer
         
         startFoundationTimer()
         notifyDelegate(of: timer)
@@ -52,6 +55,7 @@ class TimerService {
     /// Pause the current timer
     func pauseTimer(_ timer: inout Timer) {
         timer.pause()
+        currentTimer = timer
         stopFoundationTimer()
         notifyDelegate(of: timer)
     }
@@ -59,6 +63,7 @@ class TimerService {
     /// Resume the current timer
     func resumeTimer(_ timer: inout Timer) {
         timer.start()
+        currentTimer = timer
         startFoundationTimer()
         notifyDelegate(of: timer)
     }
@@ -67,21 +72,21 @@ class TimerService {
     func stopTimer() {
         guard foundationTimer != nil else { return }
         
-        foundationTimer?.stop()
-        foundationTimer = nil
-        lastUpdateTime = nil
-        accumulatedDrift = 0.0
-        
         stopFoundationTimer()
         
-        if let timer = foundationTimer {
+        if let timer = currentTimer {
             delegate?.timerService(self, didStopTimer: timer)
         }
+        
+        currentTimer = nil
+        lastUpdateTime = nil
+        accumulatedDrift = 0.0
     }
     
     /// Update timer manually (useful for app resume)
     func updateTimer(_ timer: inout Timer) {
         timer.updateRemainingTime()
+        currentTimer = timer
         notifyDelegate(of: timer)
         
         if timer.isCompleted {
@@ -95,14 +100,16 @@ class TimerService {
     private func startFoundationTimer() {
         stopFoundationTimer()
         
-        foundationTimer = Timer.scheduledTimer(
+        foundationTimer = Foundation.Timer.scheduledTimer(
             withTimeInterval: updateInterval,
             repeats: true
-        ) { [weak self] _ in
+        ) { [weak self] (timer: Foundation.Timer) in
             self?.handleTimerTick()
         }
         
-        foundationTimer?.tolerance = 0.1 // Allow 100ms tolerance for better performance
+        if #available(macOS 10.12, *) {
+            foundationTimer?.tolerance = 0.1 // Allow 100ms tolerance for better performance
+        }
         lastUpdateTime = Date()
     }
     
@@ -112,7 +119,7 @@ class TimerService {
     }
     
     private func handleTimerTick() {
-        guard let timer = foundationTimer else { return }
+        guard var timer = currentTimer else { return }
         
         // Calculate accurate time elapsed since last update
         let now = Date()
@@ -120,6 +127,7 @@ class TimerService {
         
         // Update the timer with accurate elapsed time
         timer.updateRemainingTime()
+        currentTimer = timer
         
         // Track accuracy
         accumulatedDrift += (timeElapsed - updateInterval)
@@ -168,14 +176,6 @@ class TimerService {
             name: NSApplication.didBecomeActiveNotification,
             object: nil
         )
-        
-        // Handle system time changes
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(systemTimeChanged),
-            name: NSSystemTimeZoneChangedNotification,
-            object: nil
-        )
     }
     
     @objc private func appDidEnterBackground() {
@@ -185,13 +185,7 @@ class TimerService {
     
     @objc private func appDidEnterForeground() {
         // Update timer when app becomes active
-        guard var timer = foundationTimer else { return }
-        updateTimer(&timer)
-    }
-    
-    @objc private func systemTimeChanged() {
-        // System time changed, update timer accordingly
-        guard var timer = foundationTimer else { return }
+        guard var timer = currentTimer else { return }
         updateTimer(&timer)
     }
     

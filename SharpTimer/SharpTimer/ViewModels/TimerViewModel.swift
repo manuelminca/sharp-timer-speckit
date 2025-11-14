@@ -20,6 +20,8 @@ class TimerViewModel: ObservableObject {
     @Published var totalDuration: TimeInterval = 0
     @Published var timerProgress: Double = 0.0
     @Published var formattedTime: String = "00:00"
+    @Published var currentState: TimerState = .stopped
+    @Published var currentPreset: TimerPreset = .focus
     
     // MARK: - Services
     private let timerService: TimerService
@@ -105,16 +107,6 @@ class TimerViewModel: ObservableObject {
     
     // MARK: - Timer Information
     
-    /// Get current timer preset
-    var currentPreset: TimerPreset? {
-        return currentTimer?.preset
-    }
-    
-    /// Get current timer state
-    var currentState: TimerState {
-        return currentTimer?.state ?? .stopped
-    }
-    
     /// Check if a timer is currently paused
     var isTimerPaused: Bool {
         return currentState == .paused
@@ -135,8 +127,8 @@ class TimerViewModel: ObservableObject {
     /// Get all available presets with their default durations
     var availablePresets: [(preset: TimerPreset, duration: TimeInterval)] {
         return [
-            (.focus, .focus.defaultDuration),
-            (.breakTime, .breakTime.defaultDuration),
+            (.focus, TimerPreset.focus.defaultDuration),
+            (.breakTime, TimerPreset.breakTime.defaultDuration),
             (.custom, 0) // User will specify
         ]
     }
@@ -159,9 +151,9 @@ class TimerViewModel: ObservableObject {
     
     private func setupNotifications() {
         // Save timer state every 30 seconds during operation
-        Timer.publish(every: 30, on: .main, in: .common)
+        Foundation.Timer.publish(every: 30, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in
+            .sink { [weak self] (_: Date) in
                 self?.saveTimerState()
             }
             .store(in: &cancellables)
@@ -186,6 +178,8 @@ class TimerViewModel: ObservableObject {
         formattedTime = timer.formattedTime
         isTimerActive = timer.state.isActive
         isTimerRunning = (timer.state == .running)
+        currentState = timer.state
+        currentPreset = timer.preset
     }
     
     private func resetPublishedProperties() {
@@ -196,6 +190,8 @@ class TimerViewModel: ObservableObject {
         formattedTime = "00:00"
         isTimerActive = false
         isTimerRunning = false
+        currentState = .stopped
+        currentPreset = .focus
     }
     
     private func handleTimerCompletion() {
@@ -214,7 +210,8 @@ class TimerViewModel: ObservableObject {
         notificationService.scheduleNotification(
             title: "Timer Almost Done",
             body: "\(timer.formattedTime) remaining",
-            identifier: "timer-almost-done"
+            identifier: "timer-almost-done",
+            timeInterval: timer.remainingTime - 300 // 5 minutes before completion
         )
         
         notificationService.scheduleNotification(
@@ -233,7 +230,7 @@ class TimerViewModel: ObservableObject {
     private func loadSavedTimerState() {
         if let savedTimer = persistenceService.loadTimerState(),
            savedTimer.isValid {
-            currentTimer = savedTimer.recreateTimer()
+            currentTimer = Timer.recreateTimer(from: savedTimer)
             updatePublishedProperties()
             
             // If timer was running, resume it

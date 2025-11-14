@@ -36,7 +36,7 @@ struct TimerPopupView: View {
                     remainingTime: $viewModel.remainingTime,
                     totalDuration: $viewModel.totalDuration,
                     timerState: $viewModel.currentState,
-                    preset: .constant(viewModel.currentPreset ?? .focus)
+                    preset: $viewModel.currentPreset
                 )
                 .transition(.scale.combined(with: .opacity))
             } else {
@@ -221,7 +221,6 @@ struct TimerPopupView: View {
                 TextField("Minutes", text: $customMinutes)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 80)
-                    .keyboardType(.numberPad)
                     .onSubmit {
                         validateAndStartTimer()
                     }

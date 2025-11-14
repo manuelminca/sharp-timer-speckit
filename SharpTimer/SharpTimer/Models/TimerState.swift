@@ -9,7 +9,7 @@
 import Foundation
 
 /// Timer states representing the current lifecycle of a timer
-enum TimerState: String, CaseIterable {
+enum TimerState: String, CaseIterable, Codable {
     case stopped = "stopped"
     case running = "running"
     case paused = "paused"
@@ -39,7 +39,7 @@ enum TimerState: String, CaseIterable {
 }
 
 /// Persistent timer state for app restart recovery
-struct TimerStateData {
+struct TimerStateData: Codable {
     let timerId: UUID
     let timerName: String
     let remainingTime: TimeInterval

@@ -9,7 +9,7 @@
 import Foundation
 
 /// Timer presets for different use cases
-enum TimerPreset: String, CaseIterable {
+enum TimerPreset: String, CaseIterable, Codable {
     case focus = "focus"
     case breakTime = "break"
     case custom = "custom"
@@ -158,6 +158,16 @@ struct Timer {
         if remainingTime <= 0 {
             state = .completed
         }
+    }
+/// Recreate timer from saved state data
+    static func recreateTimer(from stateData: TimerStateData) -> Timer {
+        var timer = Timer(name: stateData.timerName, duration: stateData.totalDuration, preset: stateData.preset)
+        timer.id = stateData.timerId
+        timer.remainingTime = stateData.remainingTime
+        timer.state = stateData.state
+        timer.startDate = stateData.startDate
+        timer.createdDate = Date()
+        return timer
     }
 }
 

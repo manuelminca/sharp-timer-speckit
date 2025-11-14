@@ -9,14 +9,17 @@
 import Foundation
 import UserNotifications
 import AppKit
+import CoreAudio
+import AudioToolbox
 
 /// Service for managing macOS notifications and user alerts
-class NotificationService {
+class NotificationService: NSObject {
     // MARK: - Properties
     private let notificationCenter = UNUserNotificationCenter.current()
     
     // MARK: - Initialization
-    init() {
+    override init() {
+        super.init()
         setupNotifications()
     }
     
@@ -144,7 +147,7 @@ class NotificationService {
         case .completion:
             soundID = 1007 // SMSReceived_Alert
         case .warning:
-            soundID = kSystemSoundID_FrenchRevolution
+            soundID = kSystemSoundID_UserPreferredAlert // Use preferred alert instead
         case .success:
             soundID = kSystemSoundID_UserPreferredAlert
         }
@@ -212,7 +215,11 @@ extension NotificationService: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         // Show notification even when app is active
-        completionHandler([.alert, .sound, .badge])
+        if #available(macOS 14.0, *) {
+            completionHandler([.banner, .sound, .badge])
+        } else {
+            completionHandler([.alert, .sound, .badge])
+        }
     }
     
     /// Called when user interacts with notification
@@ -256,10 +263,6 @@ enum SystemSoundType {
     case warning
     case success
 }
-
-// MARK: - Core Audio Import (for system sounds)
-import CoreAudio
-import AudioToolbox
 
 // MARK: - Mock NotificationService for Testing
 #if DEBUG
