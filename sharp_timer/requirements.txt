@@ -1,1 +1,2 @@
 rumps>=0.3.0
+pyobjc-framework-SystemConfiguration>=8.0

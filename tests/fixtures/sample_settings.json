@@ -1,0 +1,41 @@
+{
+  "work_duration": 25,
+  "rest_eyes_duration": 5,
+  "long_rest_duration": 15,
+  "current_mode": "work",
+  "notifications_enabled": true,
+  "sound_enabled": true,
+  "auto_start_next": false,
+  "audio_config": {
+    "enabled": true,
+    "duration_seconds": 5,
+    "primary_sound": "/System/Library/Sounds/Glass.aiff",
+    "fallback_sounds": [
+      "/System/Library/Sounds/Ping.aiff",
+      "/System/Library/Sounds/Purr.aiff"
+    ],
+    "volume_level": 1.0
+  },
+  "mode_transitions": {
+    "work_to_rest_eyes": {
+      "enabled": true,
+      "target_state": "paused",
+      "transition_delay_ms": 100
+    },
+    "rest_eyes_to_work": {
+      "enabled": true,
+      "target_state": "paused",
+      "transition_delay_ms": 100
+    },
+    "long_rest_to_work": {
+      "enabled": true,
+      "target_state": "paused",
+      "transition_delay_ms": 100
+    }
+  },
+  "system_integration": {
+    "handle_sleep_events": true,
+    "preserve_state_across_restarts": true,
+    "quit_confirmation_enabled": true
+  }
+}

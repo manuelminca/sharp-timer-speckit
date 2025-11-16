@@ -46,6 +46,29 @@ class TimerEngine:
         self.timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
         self.timer_thread.start()
     
+    def start_with_seconds(self, duration_seconds: int):
+        """Start the timer with specified duration in seconds.
+        
+        Args:
+            duration_seconds: Duration in seconds
+        """
+        if duration_seconds <= 0:
+            return
+        
+        # Stop any existing timer
+        self.stop()
+        
+        # Set up new timer
+        self.duration = duration_seconds
+        self.remaining = duration_seconds
+        self.running = True
+        self.paused = False
+        self.stop_event.clear()
+        
+        # Start timer thread
+        self.timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
+        self.timer_thread.start()
+    
     def pause(self):
         """Pause the timer."""
         if self.running and not self.paused:
